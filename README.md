@@ -3,6 +3,7 @@
 Creating a database of smart contracts
 Planning to work with ETH, BNB, TRON, probably other chains.
 
+⏳ Create a DB of proccessed blocks, so the app will start from the last completed block, not the LAST ATM.
 
 ⏳ Database with every single contract in crypto multichain world
 
