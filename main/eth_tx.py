@@ -1,15 +1,19 @@
 from concurrent.futures import ThreadPoolExecutor
+from optparse import Values
 from web3.auto import w3
 from loguru import logger
 from time import time
 from hexbytes import HexBytes
+import sqlite3
+from database_conn import last_block_number
+
 
 class TxFromBlock:
 
-    def __init__(self):
-        self.payload = w3.eth.get_block('latest') #get raw information about the last eth_block
+    def __init__(self, payload):
+        self.payload = payload #get raw information about the last eth_block
+        self.block_id = self.payload['number']
         self.tx_payload = set() #unique txs
-
 
     def get_tx_payload(self): # parsing TX addresses from block information and adds it to the set
         raw_tx_payload = self.payload['transactions'] 
@@ -41,7 +45,28 @@ class TxChecker(ThreadPoolExecutor): #checks if tx is creating new contract and 
         return self.checked_tx
 
 
-get_tx = TxFromBlock()
+class RelevanceCheck():
+
+    def __init__(self):
+        self.new_block = w3.eth.get_block('latest')
+        self.new_block_id = self.new_block['number']
+
+
+    def block_comparison(self, old_block): # COMPARE LAST PROCCESSED BLOCK AND MOST RECENT BLOCK
+        if self.new_block_id == last_block_number():
+            return TxFromBlock(last_block_number())
+        elif self.new_block_id > last_block_number():
+            next_block = last_block_number() + 1
+            return next_block
+        else:
+            raise Exception
+
+def get_last_block():
+    last_block = w3.eth.get_block('latest')
+    return last_block
+
+
+get_tx = TxFromBlock(get_last_block())
 payload = get_tx.get_tx_payload()
 check_tx = TxChecker()
 tx_pl = check_tx.check_tx()
