@@ -5,7 +5,7 @@ from loguru import logger
 from time import time
 from hexbytes import HexBytes
 import sqlite3
-from database_conn import last_block_number
+from database_conn import *
 
 
 class TxFromBlock:
@@ -53,10 +53,10 @@ class RelevanceCheck():
 
 
     def block_comparison(self, old_block): # COMPARE LAST PROCCESSED BLOCK AND MOST RECENT BLOCK
-        if self.new_block_id == last_block_number():
-            return TxFromBlock(last_block_number())
-        elif self.new_block_id > last_block_number():
-            next_block = last_block_number() + 1
+        if self.new_block_id == CryptoDB.last_block_number():
+            return TxFromBlock(CryptoDB.last_block_number())
+        elif self.new_block_id > CryptoDB.last_block_number():
+            next_block = CryptoDB.last_block_number() + 1
             return next_block
         else:
             raise Exception
