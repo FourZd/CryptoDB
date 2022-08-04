@@ -1,16 +1,23 @@
+from typing import Text
 from peewee import *
 from web3.auto import w3
 
 CryptoDB = SqliteDatabase('/home/fourzd/CryptoDB/main/CryptoDB')
 
 class ProccessedBlocks(Model):
-    id = AutoField()
+    id = BigAutoField()
     number = IntegerField()
     
 
     class Meta:
         database = CryptoDB 
+class EthContracts(Model):
+    id = BigAutoField()
+    smart_contract = TextField()
 
+
+    class Meta:
+        database = CryptoDB
 class DBOrganization():
   
     def __init__(self):
@@ -20,6 +27,7 @@ class DBOrganization():
     def initialize_db(self):
         CryptoDB.connect()
         CryptoDB.create_tables([ProccessedBlocks], safe = True)
+        CryptoDB.create_tables([EthContracts], safe = True)
         CryptoDB.close()
     
 
@@ -40,12 +48,8 @@ class DBOrganization():
                 print('Restart call skipped')
             else:
                 raise Exception('Wrong input')
-
-if __name__ == '/home/fourzd/CryptoDB/main/database_conn':
-    print('efwfw')
+def start_db():
     crypto_db = DBOrganization()
     crypto_db.initialize_db()
     crypto_db.default_block()
-else:
-    print('жопа')
-
+start_db()

@@ -8,7 +8,6 @@ from loguru import logger
 from time import time, sleep
 from hexbytes import HexBytes
 import sqlite3
-from peewee import *
 import sys
 import os
 from aiohttp import ClientSession
@@ -69,59 +68,50 @@ class TxFromBlock: #  get TXs from the choosen block
         return tx_payload
 
 
-
-class TxChecker(): #checks if tx is creating new contract and if so - adds it to the DB
-    
-    def __init__(self):
-        self.checked_tx = []
-        
-
-    def check_tx(self, block_payload): #check_tx
-        count = 0
-        for tx in block_payload:
-            count += 1
-            try:
-                tx_attributes = w3.eth.get_transaction_receipt(transaction_hash = tx)
-                print('Tx No', count)
-                if tx_attributes['contractAddress'] != None:
-                    print('Found!', tx_attributes['contractAddress'])
-                else:
-                    print('Not creation tx, keep searching...', '\n', 'From:', tx_attributes['from'], 'To:', tx_attributes['to'])
-            except Exception as e:
-                print(e)
-                print('Transaction not found!')
-            
-
-class AsyncProccess():
+class TxCheck():
     def __init__(self):
         pass
     def server_call(self, tx_payload):
+        contract_transactions = set()
         for tx in tx_payload:
             try:
-                with Timeout(1):
+                try:
+                    with Timeout(1):
+                        tx_attributes = w3.eth.get_transaction_receipt(tx)
+                except Timeout.Timeout:
                     tx_attributes = w3.eth.get_transaction_receipt(tx)
-                    if tx_attributes['contractAddress'] != None:
-                        print('Found!', tx_attributes['contractAddress'])
-                    else:
-                        print('Not creation tx, keep searching...', '\n', 'From:', tx_attributes['from'], 'To:', tx_attributes['to'])
+                if tx_attributes['contractAddress'] != None:
+                    print('Found!', tx_attributes['contractAddress'])
+                    self.append_to_db(tx_attributes['contractAddress'])
+                        
+                else:
+                    print('Not creation tx, keep searching...', '\n', 'From:', tx_attributes['from'], 'To:', tx_attributes['to'])
             except Timeout.Timeout:
-                print('Timeout error')
+                tx_attributes = w3.eth.get_transaction_receipt(tx)
             except Exception as e:
                 print(e, e, tx, e, e)
                 print('Transaction not found!')
             
-
+    def append_to_db(self, tx):
+        conn = sqlite3.connect(os.path.join(sys.path[0], 'CryptoDB'))
+        cursor = conn.cursor()
+        address = tx
+        append = cursor.execute(f"INSERT INTO ethcontracts (smart_contract) VALUES(?)", (address,))
+        conn.commit()
     def main(self, block_payload):
-        threads = []
+        proccesses = []
         start_time = time()
-        l = numpy.array_split(numpy.array(block_payload), 16)
+        l = numpy.array_split(numpy.array(block_payload), 12)
         for array in l:
             proc = Process(target=self.server_call, args=(array, ))
-            threads.append(proc)
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+            proccesses.append(proc)
+        for p in proccesses:
+            try:
+                p.start()
+            except ValueError as ve:
+                print('Theres a problem on server')
+        for p in proccesses:
+            p.join()
         work_time = "\n --- %s seconds ---" % (time() - start_time)
         print("--- %s seconds ---" % (time() - start_time))
         with open('time.txt', 'a', encoding='utf-8') as log:
@@ -197,7 +187,7 @@ class MainProccess():
     def __init__(self):
         self.dbcommunication = DBCommunnication()
         self.tx_from_block = TxFromBlock()
-        self.tx_checker = AsyncProccess()
+        self.tx_checker = TxCheck()
         self.number_to_parse = None
         self.tx_payload = None
     def start_work(self):
