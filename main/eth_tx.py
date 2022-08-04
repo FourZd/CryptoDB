@@ -18,8 +18,26 @@ from web3.net import AsyncNet
 from web3.geth import Geth, AsyncGethTxPool
 from multiprocessing import Process
 import numpy
+import signal
 
+class Timeout():
+  """Timeout class using ALARM signal"""
+  class Timeout(Exception): pass
 
+  def __init__(self, sec):
+    self.sec = sec
+
+  def __enter__(self):
+    signal.signal(signal.SIGALRM, self.raise_timeout)
+    signal.alarm(self.sec)
+
+  def __exit__(self, *args):
+    signal.alarm(0) # disable alarm
+
+  def raise_timeout(self, *args):
+    raise Timeout.Timeout()
+
+    
 class AsyncConnect(AsyncHTTPProvider):
     def __init__(self):
         pass
@@ -39,15 +57,16 @@ class AsyncConnect(AsyncHTTPProvider):
 class TxFromBlock: #  get TXs from the choosen block
 
     def __init__(self): 
-        self.tx_payload = set() #unique txs
+        pass
 
     def get_tx_payload(self, current_block_number): # parsing TX addresses from block information and adds it to the set
+        tx_payload = set()
         current_block = w3.eth.get_block(current_block_number)
         print('Transactions of block №', current_block_number, 'was successfully parsed')
         raw_tx_payload = current_block['transactions'] 
         for elem in raw_tx_payload:
-            self.tx_payload.add(HexBytes.hex(elem))
-        return self.tx_payload
+            tx_payload.add(HexBytes.hex(elem))
+        return tx_payload
 
 
 
@@ -79,20 +98,23 @@ class AsyncProccess():
     def server_call(self, tx_payload):
         for tx in tx_payload:
             try:
-                tx_attributes = w3.eth.get_transaction_receipt(tx)
-                if tx_attributes['contractAddress'] != None:
-                    print('Found!', tx_attributes['contractAddress'])
-                else:
-                    print('Not creation tx, keep searching...', '\n', 'From:', tx_attributes['from'], 'To:', tx_attributes['to'])
+                with Timeout(1):
+                    tx_attributes = w3.eth.get_transaction_receipt(tx)
+                    if tx_attributes['contractAddress'] != None:
+                        print('Found!', tx_attributes['contractAddress'])
+                    else:
+                        print('Not creation tx, keep searching...', '\n', 'From:', tx_attributes['from'], 'To:', tx_attributes['to'])
+            except Timeout.Timeout:
+                print('Timeout error')
             except Exception as e:
                 print(e, e, tx, e, e)
                 print('Transaction not found!')
-                
+            
 
     def main(self, block_payload):
         threads = []
         start_time = time()
-        l = numpy.array_split(numpy.array(block_payload), 8)
+        l = numpy.array_split(numpy.array(block_payload), 16)
         for array in l:
             proc = Process(target=self.server_call, args=(array, ))
             threads.append(proc)
@@ -100,7 +122,11 @@ class AsyncProccess():
             t.start()
         for t in threads:
             t.join()
+        work_time = "\n --- %s seconds ---" % (time() - start_time)
         print("--- %s seconds ---" % (time() - start_time))
+        with open('time.txt', 'a', encoding='utf-8') as log:
+            log.write(str(work_time))
+            log.write(str(l))
         
 
 class RelevanceCheck():
