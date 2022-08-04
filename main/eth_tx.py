@@ -1,6 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
 from optparse import Values
 from web3.auto import w3
+from web3.eth import (
+    AsyncEth,
+)
 from loguru import logger
 from time import time, sleep
 from hexbytes import HexBytes
@@ -8,47 +11,97 @@ import sqlite3
 from peewee import *
 import sys
 import os
-import asyncio
+from aiohttp import ClientSession
+from web3 import Web3, AsyncHTTPProvider
+from web3.eth import AsyncEth
+from web3.net import AsyncNet
+from web3.geth import Geth, AsyncGethTxPool
+from multiprocessing import Process
+import numpy
 
+
+class AsyncConnect(AsyncHTTPProvider):
+    def __init__(self):
+        pass
+    async def start_connection(self):
+        w3 = Web3(
+        AsyncHTTPProvider(endpoint_uri),
+        modules={'eth': (AsyncEth,),
+            'net': (AsyncNet,),
+            'geth': (Geth,
+                {'txpool': (AsyncGethTxPool,),
+                'personal': (AsyncGethPersonal,),
+                'admin' : (AsyncGethAdmin,)})},
+        middlewares=[]   # See supported middleware section below for middleware options
+        )
+        custom_session = ClientSession()  # If you want to pass in your own session
+        await w3.provider.cache_async_session(custom_session) 
 class TxFromBlock: #  get TXs from the choosen block
 
-    def __init__(self, current_block_number):
-        self.current_block_number = current_block_number #get raw information about the last eth_block
+    def __init__(self): 
         self.tx_payload = set() #unique txs
-        self.current_block = None
 
-    def get_current_block(self):
-        self.current_block = w3.eth.get_block(self.current_block_number)
-    def get_tx_payload(self): # parsing TX addresses from block information and adds it to the set
-        print('Transactions of block №', self.current_block_number, 'was successfully parsed')
-        raw_tx_payload = self.current_block['transactions'] 
+    def get_tx_payload(self, current_block_number): # parsing TX addresses from block information and adds it to the set
+        current_block = w3.eth.get_block(current_block_number)
+        print('Transactions of block №', current_block_number, 'was successfully parsed')
+        raw_tx_payload = current_block['transactions'] 
         for elem in raw_tx_payload:
             self.tx_payload.add(HexBytes.hex(elem))
         return self.tx_payload
 
 
 
-class TxChecker(ThreadPoolExecutor): #checks if tx is creating new contract and if so - adds it to the DB
-
+class TxChecker(): #checks if tx is creating new contract and if so - adds it to the DB
+    
     def __init__(self):
         self.checked_tx = []
+        
 
+    def check_tx(self, block_payload): #check_tx
+        count = 0
+        for tx in block_payload:
+            count += 1
+            try:
+                tx_attributes = w3.eth.get_transaction_receipt(transaction_hash = tx)
+                print('Tx No', count)
+                if tx_attributes['contractAddress'] != None:
+                    print('Found!', tx_attributes['contractAddress'])
+                else:
+                    print('Not creation tx, keep searching...', '\n', 'From:', tx_attributes['from'], 'To:', tx_attributes['to'])
+            except Exception as e:
+                print(e)
+                print('Transaction not found!')
+            
 
-    def check_tx(self):
-        start_time = time()
-        for tx in current_block_number:
+class AsyncProccess():
+    def __init__(self):
+        pass
+    def server_call(self, tx_payload):
+        for tx in tx_payload:
             try:
                 tx_attributes = w3.eth.get_transaction_receipt(tx)
                 if tx_attributes['contractAddress'] != None:
                     print('Found!', tx_attributes['contractAddress'])
                 else:
                     print('Not creation tx, keep searching...', '\n', 'From:', tx_attributes['from'], 'To:', tx_attributes['to'])
-            except Exception:
+            except Exception as e:
+                print(e, e, tx, e, e)
                 print('Transaction not found!')
-            
-        print("--- %s seconds ---" % (time() - start_time))
-        return self.checked_tx
+                
 
+    def main(self, block_payload):
+        threads = []
+        start_time = time()
+        l = numpy.array_split(numpy.array(block_payload), 8)
+        for array in l:
+            proc = Process(target=self.server_call, args=(array, ))
+            threads.append(proc)
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        print("--- %s seconds ---" % (time() - start_time))
+        
 
 class RelevanceCheck():
 
@@ -113,14 +166,22 @@ class DBCommunnication():
         change_number_to_default = self.cursor.execute(f"REPLACE INTO proccessedblocks values (1, {next_block_number_to_use})")
         self.conn.commit()
         print('Next block to use: №', next_block_number_to_use)
-db_communication = DBCommunnication()
-number_to_parse = db_communication.get_last_block() # get number of block
-get_tx = TxFromBlock(number_to_parse)
-get_tx.get_current_block()
-current_block_number = get_tx.get_tx_payload()
-check_tx = TxChecker()
-tx_pl = check_tx.check_tx()
-db_communication.update_last_block(number_to_parse)
-logger.add("dev_logs", format="{time} {level} {message}") #just logs
-logger.info(tx_pl) #just logs
 
+class MainProccess():
+    def __init__(self):
+        self.dbcommunication = DBCommunnication()
+        self.tx_from_block = TxFromBlock()
+        self.tx_checker = AsyncProccess()
+        self.number_to_parse = None
+        self.tx_payload = None
+    def start_work(self):
+        while True:
+            self.number_to_parse = self.dbcommunication.get_last_block()
+            self.tx_payload = list(self.tx_from_block.get_tx_payload(self.number_to_parse))
+            self.tx_checker.main(self.tx_payload)
+            self.dbcommunication.update_last_block(self.number_to_parse)
+
+
+
+main = MainProccess()
+main.start_work()
