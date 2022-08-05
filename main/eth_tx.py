@@ -36,27 +36,12 @@ class Timeout():
   def raise_timeout(self, *args):
     raise Timeout.Timeout()
 
-    
-class AsyncConnect(AsyncHTTPProvider):
-    def __init__(self):
-        pass
-    async def start_connection(self):
-        w3 = Web3(
-        AsyncHTTPProvider(endpoint_uri),
-        modules={'eth': (AsyncEth,),
-            'net': (AsyncNet,),
-            'geth': (Geth,
-                {'txpool': (AsyncGethTxPool,),
-                'personal': (AsyncGethPersonal,),
-                'admin' : (AsyncGethAdmin,)})},
-        middlewares=[]   # See supported middleware section below for middleware options
-        )
-        custom_session = ClientSession()  # If you want to pass in your own session
-        await w3.provider.cache_async_session(custom_session) 
+
 class TxFromBlock: #  get TXs from the choosen block
 
     def __init__(self): 
         pass
+
 
     def get_tx_payload(self, current_block_number): # parsing TX addresses from block information and adds it to the set
         tx_payload = set()
@@ -69,8 +54,11 @@ class TxFromBlock: #  get TXs from the choosen block
 
 
 class TxCheck():
+
     def __init__(self):
         pass
+
+
     def server_call(self, tx_payload):
         contract_transactions = set()
         for tx in tx_payload:
@@ -92,12 +80,15 @@ class TxCheck():
                 print(e, e, tx, e, e)
                 print('Transaction not found!')
             
+
     def append_to_db(self, tx):
         conn = sqlite3.connect(os.path.join(sys.path[0], 'CryptoDB'))
         cursor = conn.cursor()
         address = tx
         append = cursor.execute(f"INSERT INTO ethcontracts (smart_contract) VALUES(?)", (address,))
         conn.commit()
+
+
     def main(self, block_payload):
         proccesses = []
         start_time = time()
@@ -142,10 +133,13 @@ class RelevanceCheck():
 
 
 class DBCommunnication():
+
+
     def __init__(self):
         self.conn = sqlite3.connect(os.path.join(sys.path[0], 'CryptoDB'))
         self.cursor = self.conn.cursor()
     
+
     def get_last_block(self):
         try:
             query = self.cursor.execute('SELECT number FROM proccessedblocks WHERE rowid == 1')
@@ -177,6 +171,7 @@ class DBCommunnication():
             else:
                 raise Exception('Invalid input')
 
+
     def update_last_block(self, completed_block_number):
         next_block_number_to_use = completed_block_number + 1
         change_number_to_default = self.cursor.execute(f"REPLACE INTO proccessedblocks values (1, {next_block_number_to_use})")
@@ -184,12 +179,16 @@ class DBCommunnication():
         print('Next block to use: №', next_block_number_to_use)
 
 class MainProccess():
+
+
     def __init__(self):
         self.dbcommunication = DBCommunnication()
         self.tx_from_block = TxFromBlock()
         self.tx_checker = TxCheck()
         self.number_to_parse = None
         self.tx_payload = None
+
+
     def start_work(self):
         while True:
             self.number_to_parse = self.dbcommunication.get_last_block()
