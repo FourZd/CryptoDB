@@ -20,9 +20,9 @@ from web3.middleware import geth_poa_middleware
 import numpy
 import signal
 
-my_bsc_provider = Web3.HTTPProvider('https://bsc-dataseed1.binance.org/')
-w3_bnb = Web3(my_bsc_provider)
-w3_bnb.middleware_onion.inject(geth_poa_middleware, layer=0)
+bsc_provider = Web3.HTTPProvider('https://bsc-dataseed1.binance.org/')
+w3_bsc = Web3(bsc_provider)
+w3_bsc.middleware_onion.inject(geth_poa_middleware, layer=0)
 
 class Timeout(): #simply timeout class, its neccesary in the future code
   """Timeout class using ALARM signal"""
@@ -54,7 +54,7 @@ class TxFromBlock: #  get TXs from the choosen block
 
     def get_tx_payload(self, current_block_number): # parsing TX addresses from block information and adds it to the set
         tx_payload = set() #set of unique transactions from the block
-        current_block = w3.eth.get_block(current_block_number) #get all block info
+        current_block = w3_bsc.eth.get_block(current_block_number) #get all block info
         print('Transactions of block №', current_block_number, 'was successfully parsed')
         raw_tx_payload = current_block['transactions'] #get transactions from all info payload
         for elem in raw_tx_payload:
@@ -68,39 +68,40 @@ class TxCheck():
         pass
 
 
-    def server_call(self, tx_payload):
+    def server_call(self, tx_payload, block_number):
         for tx in tx_payload:
             try:
                 try:
                     with Timeout(1):
-                        tx_attributes = w3.eth.get_transaction_receipt(tx) #gets all info about transaction
+                        tx_attributes = w3_bsc.eth.get_transaction_receipt(tx) #gets all info about transaction
                 except Timeout.Timeout:
-                    tx_attributes = w3.eth.get_transaction_receipt(tx) #if timeout bug, trying to get info again
+                    tx_attributes = w3_bsc.eth.get_transaction_receipt(tx) #if timeout bug, trying to get info again
                 if tx_attributes['contractAddress'] != None: #contract creation transactions have contractAddress atr, so this is what we're looking for
                     print('Found!', tx_attributes['contractAddress'])
-                    self.append_to_db(tx_attributes['contractAddress']) 
+                    self.append_to_db(tx_attributes['contractAddress'], block_number) 
                         
-                else:
+                #else:
                     print('Not creation tx, keep searching...', '\n', 'From:', tx_attributes['from'], 'To:', tx_attributes['to'])
             except Exception as e: 
                 print(e, tx)
                 print('Transaction not found!')
             
 
-    def append_to_db(self, tx): #appending contract transactions to database
+    def append_to_db(self, tx, block_number): #appending contract transactions to database
         conn = sqlite3.connect(os.path.join(sys.path[0], 'CryptoDB'))
         cursor = conn.cursor()
         address = tx
-        append = cursor.execute(f"INSERT INTO ethcontracts (smart_contract) VALUES(?)", (address,))
+        append = cursor.execute(f"INSERT INTO smartcontracts (contract, blockchain, block_number) VALUES(?, ?, ?)", (address, 'bsc', block_number))
         conn.commit()
+        conn.close()
 
 
-    def main(self, block_payload): #main script, creating 12 proccesses for fast-working(async doesnt work with web3 somewhy)
+    def main(self, block_payload, block_number): #main script, creating 12 proccesses for fast-working(async doesnt work with web3 somewhy)
         proccesses = []
         start_time = time()
         l = numpy.array_split(numpy.array(block_payload), 12)
         for array in l:
-            proc = Process(target=self.server_call, args=(array, ))
+            proc = Process(target=self.server_call, args=(array, block_number, ))
             proccesses.append(proc)
         for p in proccesses:
             try:
@@ -111,23 +112,21 @@ class TxCheck():
             p.join()
         work_time = "\n --- %s seconds ---" % (time() - start_time)
         print("--- %s seconds ---" % (time() - start_time))
-        with open('time.txt', 'a', encoding='utf-8') as log:
-            log.write(str(work_time))
-            log.write(str(l))
         
 
 class DBCommunnication(): 
 
 
     def __init__(self):
-        self.conn = sqlite3.connect(os.path.join(sys.path[0], 'CryptoDB'))
-        self.cursor = self.conn.cursor()
-    
+        pass
 
     def get_last_block(self): #getting last saved block from the database, if theres none - asking if user want to create default(last) value
+        conn = sqlite3.connect(os.path.join(sys.path[0], 'CryptoDB'))
+        cursor = conn.cursor()
         try:
-            query = self.cursor.execute('SELECT number FROM proccessedblocks WHERE rowid == 1')
+            query = cursor.execute('SELECT number FROM proccessedblocks WHERE blockchain =?', ('bsc',))
             result = query.fetchone()
+            conn.close()
             return result[0]
         except TypeError as e:
             print('It looks like you did not set neither desired block number nor default')
@@ -136,15 +135,17 @@ class DBCommunnication():
                 desired_or_default = int(input('Do you want to set desired number, or set by default(last existing)? 1/2'))
                 if desired_or_default == 1:
                     desired_number_set = int(input('Write the desired block number'))
-                    change_number_to_desired = self.cursor.execute(f"INSERT INTO proccessedblocks values (1, {desired_number_set})")
-                    self.conn.commit()
+                    change_number_to_desired = cursor.execute(f"INSERT INTO proccessedblocks values (2, bnb, {desired_number_set})")
+                    conn.commit()
+                    conn.close()
                     print('Your number was successfully changed to desired:', desired_number_set)
                     return desired_number_set
                 elif desired_or_default == 2:
                     print('Setting current block as default(last exists)')
-                    default_block_num = w3.eth.get_block('latest')['number']
-                    change_number_to_default = self.cursor.execute(f"INSERT INTO proccessedblocks values (1, {default_block_num})")
-                    self.conn.commit()
+                    default_block_num = w3_bsc.eth.get_block('latest')['number']
+                    change_number_to_default = cursor.execute(f"INSERT INTO proccessedblocks values (2, bnb, {default_block_num})")
+                    conn.commit()
+                    conn.close()
                     return default_block_num
                 else:
                     raise Exception('Invalid input')
@@ -157,9 +158,12 @@ class DBCommunnication():
 
 
     def update_last_block(self, completed_block_number): #after one cycle, adding next block number to DB
+        conn = sqlite3.connect(os.path.join(sys.path[0], 'CryptoDB'))
+        cursor = conn.cursor()
         next_block_number_to_use = completed_block_number + 1
-        change_number_to_default = self.cursor.execute(f"REPLACE INTO proccessedblocks values (1, {next_block_number_to_use})")
-        self.conn.commit()
+        change_number_to_default = cursor.execute(f"REPLACE INTO proccessedblocks VALUES(?, ?, ?)", (2, 'bsc', next_block_number_to_use,))
+        conn.commit()
+        conn.close()
         print('Next block to use: №', next_block_number_to_use)
 
 class MainProccess(): #just a starter for script cycle
@@ -174,13 +178,12 @@ class MainProccess(): #just a starter for script cycle
 
 
     def start_work(self):
-        while True: #theres no reason to stop this cycle
+        while True:
             self.number_to_parse = self.dbcommunication.get_last_block() #last block number from DB
             self.tx_payload = list(self.tx_from_block.get_tx_payload(self.number_to_parse)) #parsing txs from block
-            self.tx_checker.main(self.tx_payload) #checking if tx creates contract
+            self.tx_checker.main(self.tx_payload, self.number_to_parse) #checking if tx creates contract
             self.dbcommunication.update_last_block(self.number_to_parse) #adding next block to the DB
 
 
 
-main = MainProccess()
-main.start_work()
+bsc_main = MainProccess()
