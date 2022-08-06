@@ -80,7 +80,7 @@ class TxCheck():
                     print('Found!', tx_attributes['contractAddress'])
                     self.append_to_db(tx_attributes['contractAddress'], block_number) 
                         
-                #else:
+                else:
                     print('Not creation tx, keep searching...', '\n', 'From:', tx_attributes['from'], 'To:', tx_attributes['to'])
             except Exception as e: 
                 print(e, tx)
@@ -158,9 +158,15 @@ class DBCommunnication():
 
 
     def update_last_block(self, completed_block_number): #after one cycle, adding next block number to DB
+        latest_block = w3_bsc.eth.get_block('latest')['number']
+        if latest_block == completed_block_number:
+            print('Completed last available block, waiting for next one...')
+            while latest_block == completed_block_number:
+                latest_block = w3_bsc.eth.get_block('latest')['number']
+            print('New block was created, continuing...')
+        next_block_number_to_use = completed_block_number + 1
         conn = sqlite3.connect(os.path.join(sys.path[0], 'CryptoDB'))
         cursor = conn.cursor()
-        next_block_number_to_use = completed_block_number + 1
         change_number_to_default = cursor.execute(f"REPLACE INTO proccessedblocks VALUES(?, ?, ?)", (2, 'bsc', next_block_number_to_use,))
         conn.commit()
         conn.close()
