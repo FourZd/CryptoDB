@@ -19,19 +19,26 @@ from multiprocessing import Process
 import numpy
 import signal
 
-class Timeout():
+#YOU HAVE TO CONNECT TO LIGHTNODE FIRST $geth --syncmode light
+#IT WONT WORK OTHER WAY
+
+class Timeout(): #simply timeout class, its neccesary in the future code
   """Timeout class using ALARM signal"""
   class Timeout(Exception): pass
 
+
   def __init__(self, sec):
     self.sec = sec
+
 
   def __enter__(self):
     signal.signal(signal.SIGALRM, self.raise_timeout)
     signal.alarm(self.sec)
 
+
   def __exit__(self, *args):
     signal.alarm(0) # disable alarm
+
 
   def raise_timeout(self, *args):
     raise Timeout.Timeout()
@@ -44,13 +51,13 @@ class TxFromBlock: #  get TXs from the choosen block
 
 
     def get_tx_payload(self, current_block_number): # parsing TX addresses from block information and adds it to the set
-        tx_payload = set()
-        current_block = w3.eth.get_block(current_block_number)
+        tx_payload = set() #set of unique transactions from the block
+        current_block = w3.eth.get_block(current_block_number) #get all block info
         print('Transactions of block №', current_block_number, 'was successfully parsed')
-        raw_tx_payload = current_block['transactions'] 
+        raw_tx_payload = current_block['transactions'] #get transactions from all info payload
         for elem in raw_tx_payload:
-            tx_payload.add(HexBytes.hex(elem))
-        return tx_payload
+            tx_payload.add(HexBytes.hex(elem)) #add tx to set
+        return tx_payload #returning transactions
 
 
 class TxCheck():
@@ -60,28 +67,25 @@ class TxCheck():
 
 
     def server_call(self, tx_payload):
-        contract_transactions = set()
         for tx in tx_payload:
             try:
                 try:
                     with Timeout(1):
-                        tx_attributes = w3.eth.get_transaction_receipt(tx)
+                        tx_attributes = w3.eth.get_transaction_receipt(tx) #gets all info about transaction
                 except Timeout.Timeout:
-                    tx_attributes = w3.eth.get_transaction_receipt(tx)
-                if tx_attributes['contractAddress'] != None:
+                    tx_attributes = w3.eth.get_transaction_receipt(tx) #if timeout bug, trying to get info again
+                if tx_attributes['contractAddress'] != None: #contract creation transactions have contractAddress atr, so this is what we're looking for
                     print('Found!', tx_attributes['contractAddress'])
-                    self.append_to_db(tx_attributes['contractAddress'])
+                    self.append_to_db(tx_attributes['contractAddress']) 
                         
                 else:
                     print('Not creation tx, keep searching...', '\n', 'From:', tx_attributes['from'], 'To:', tx_attributes['to'])
-            except Timeout.Timeout:
-                tx_attributes = w3.eth.get_transaction_receipt(tx)
-            except Exception as e:
-                print(e, e, tx, e, e)
+            except Exception as e: 
+                print(e, tx)
                 print('Transaction not found!')
             
 
-    def append_to_db(self, tx):
+    def append_to_db(self, tx): #appending contract transactions to database
         conn = sqlite3.connect(os.path.join(sys.path[0], 'CryptoDB'))
         cursor = conn.cursor()
         address = tx
@@ -89,7 +93,7 @@ class TxCheck():
         conn.commit()
 
 
-    def main(self, block_payload):
+    def main(self, block_payload): #main script, creating 12 proccesses for fast-working(async doesnt work with web3 somewhy)
         proccesses = []
         start_time = time()
         l = numpy.array_split(numpy.array(block_payload), 12)
@@ -110,29 +114,7 @@ class TxCheck():
             log.write(str(l))
         
 
-class RelevanceCheck():
-
-    def __init__(self):
-        self.new_block_id = w3.eth.get_block('latest')['number']
-
-
-    def block_comparison(self, old_block):
-        pass # COMPARE LAST PROCCESSED BLOCK AND MOST RECENT BLOCK
-        #if self.new_block_id == CryptoDB.current_block_number():
-            #return TxFromBlock(CryptoDB.current_block_number())
-        #elif self.new_block_id > CryptoDB.current_block_number():
-            #next_block = CryptoDB.last_block_numbяer() + 1
-            #return next_block
-       # if ProccessedBlocks.select().where(ProccessedBlocks.id == '0'): #if theres info in the DB
-            #id = ProccessedBlocks.get(ProccessedBlocks.id == 0) 
-            #id.delete_instance() 
-            #export_info = ProccessedBlocks(number=w3.eth.get_block('latest')['number'])
-            #export_info.save()
-        #else:
-            #raise Exception
-
-
-class DBCommunnication():
+class DBCommunnication(): 
 
 
     def __init__(self):
@@ -140,7 +122,7 @@ class DBCommunnication():
         self.cursor = self.conn.cursor()
     
 
-    def get_last_block(self):
+    def get_last_block(self): #getting last saved block from the database, if theres none - asking if user want to create default(last) value
         try:
             query = self.cursor.execute('SELECT number FROM proccessedblocks WHERE rowid == 1')
             result = query.fetchone()
@@ -172,13 +154,13 @@ class DBCommunnication():
                 raise Exception('Invalid input')
 
 
-    def update_last_block(self, completed_block_number):
+    def update_last_block(self, completed_block_number): #after one cycle, adding next block number to DB
         next_block_number_to_use = completed_block_number + 1
         change_number_to_default = self.cursor.execute(f"REPLACE INTO proccessedblocks values (1, {next_block_number_to_use})")
         self.conn.commit()
         print('Next block to use: №', next_block_number_to_use)
 
-class MainProccess():
+class MainProccess(): #just a starter for script cycle
 
 
     def __init__(self):
@@ -190,11 +172,11 @@ class MainProccess():
 
 
     def start_work(self):
-        while True:
-            self.number_to_parse = self.dbcommunication.get_last_block()
-            self.tx_payload = list(self.tx_from_block.get_tx_payload(self.number_to_parse))
-            self.tx_checker.main(self.tx_payload)
-            self.dbcommunication.update_last_block(self.number_to_parse)
+        while True: #theres no reason to stop this cycle
+            self.number_to_parse = self.dbcommunication.get_last_block() #last block number from DB
+            self.tx_payload = list(self.tx_from_block.get_tx_payload(self.number_to_parse)) #parsing txs from block
+            self.tx_checker.main(self.tx_payload) #checking if tx creates contract
+            self.dbcommunication.update_last_block(self.number_to_parse) #adding next block to the DB
 
 
 
