@@ -12,3 +12,5 @@ Planning to work with ETH, BNB, TRON, probably other chains.
 ⏳ TG Bot or other way for common users to get useful info
 
 ⏳ Some useful features, f.e. users will be able to see if the contract author created something before (it will help investors to evage rugpulls)
+
+FIGMA PROJECT https://www.figma.com/file/e00RwyRKFcreovTwkdVDjg/CryptoDB?node-id=0%3A1
