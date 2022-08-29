@@ -5,6 +5,6 @@ from .models import SmartContract, Blockchain
 
 @admin.register(SmartContract, Blockchain)
 class CryptoCurrenciesAdmin(admin.ModelAdmin):
-    pass
+    fields = ('')
 
  
