@@ -18,6 +18,5 @@ from django.urls import include, path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('main_page.urls')),
-    path('smart-contracts/', include('smartcontracts.urls'))
+    path('', include('cryptocurrencies.urls'))
 ]

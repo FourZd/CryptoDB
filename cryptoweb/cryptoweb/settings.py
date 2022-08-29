@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '' # ADD YOUR KEY
+SECRET_KEY = 'django-insecure-99d)ldv8wq9qbkqsye%8g67frq_p1j^xxmr-4a_f(*us_x8_ug' # ADD YOUR KEY
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -37,8 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'smartcontracts.apps.SmartContractsConfig',
-    'main_page.apps.MainPageConfig'
+    'cryptocurrencies.apps.CryptoCurrenciesConfig',
 ]
 
 MIDDLEWARE = [
@@ -96,7 +95,7 @@ AUTH_PASSWORD_VALIDATORS = []
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru'
 
 TIME_ZONE = 'Europe/Moscow'
 
