@@ -1,10 +1,9 @@
-main/CryptoDB
-main/__pycache__/
-main/__pycache__/
-time.txt
+cryptoweb/cryptocurrencies/__pycache__/__init__.cpython-310.pyc
 cryptoweb/cryptocurrencies/__pycache__/admin.cpython-310.pyc
 cryptoweb/cryptocurrencies/__pycache__/apps.cpython-310.pyc
 cryptoweb/cryptocurrencies/__pycache__/models.cpython-310.pyc
 cryptoweb/cryptocurrencies/__pycache__/urls.cpython-310.pyc
 cryptoweb/cryptocurrencies/__pycache__/views.cpython-310.pyc
+main/__pycache__/bsc.cpython-310.pyc
+main/__pycache__/eth.cpython-310.pyc
 cryptoweb/cryptoweb/__pycache__/settings.cpython-310.pyc
