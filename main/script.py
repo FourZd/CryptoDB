@@ -88,7 +88,7 @@ class TxCheck():
                     }
                     self.append_to_db(tx_info) 
                         
-                #else:
+                else:
                     print('Not creation tx, keep searching...', '\n', 'From:', tx_attributes['from'], 'To:', tx_attributes['to'])
             except Exception as e: 
                 print(e, tx)
@@ -140,47 +140,28 @@ class DBCommunnication():
             self.blockchain_id = 2
 
     def get_last_block(self): #getting last saved block from the database, if theres none - asking if user want to create default(last) value
-        conn = psycopg2.connect(database='webdb', user='fourzd', password='1234qwer',
-                                  host='localhost', port=5432)
-        cursor = conn.cursor()
         try:
+            conn = psycopg2.connect(database='webdb', user='fourzd', password='1234qwer',
+                                  host='localhost', port=5432)
+            cursor = conn.cursor()
             cursor.execute(f'SELECT number FROM proccessedblocks WHERE blockchain = %s;', [self.blockchain, ])
             result = cursor.fetchone()
             conn.close()
             return result[0]
-        except TypeError as e:
+        except Exception as e:
+            conn = psycopg2.connect(database='webdb', user='fourzd', password='1234qwer',
+                                  host='localhost', port=5432)
+            cursor = conn.cursor()
             print('It looks like you did not set neither desired block number nor default')
-            choose_block_number = input('Do you want to do it now? Y/n')
-            if choose_block_number == 'Y':
-                desired_or_default = int(input('Do you want to set desired number, or set by default(last existing)? 1/2'))
-                if desired_or_default == 1:
-                    desired_number_set = int(input('Write the desired block number'))
-                    change_number_to_desired = cursor.execute(
-                        "INSERT INTO proccessedblocks (id, blockchain, number) VALUES(%s)", 
-                        (self.blockchain_id, self.blockchain, desired_number_set,)
-                        )
-                    conn.commit()
-                    conn.close()
-                    print('Your number was successfully changed to desired:', desired_number_set)
-                    return desired_number_set
-                elif desired_or_default == 2:
-                    print('Setting current block as default(last exists)')
-                    default_block_num = self.provider.eth.get_block('latest')['number']
-                    change_number_to_default = self.cursor.execute(
-                        "INSERT INTO proccessedblocks (id, blockchain, number) VALUES(%s)", 
-                        (self.blockchain_id, self.blockchain, default_block_num,)
-                        )
-                    conn.commit()
-                    conn.close()
-                    return default_block_num
-                else:
-                    raise Exception('Invalid input')
-            elif choose_block_number == 'n':
-                print('Accepted. Closing app...')
-                sleep(3)
-                sys.exit()
-            else:
-                raise Exception('Invalid input')
+            print('Setting current block as default(last exists)')
+            default_block_num = self.provider.eth.get_block('latest')['number']
+            change_number_to_default = cursor.execute(
+                """INSERT INTO proccessedblocks (id, blockchain, number) VALUES(%s, %s, %s)""", 
+                (self.blockchain_id, self.blockchain, default_block_num)
+                )
+            conn.commit()
+            conn.close()
+            return default_block_num
 
 
     def update_last_block(self, completed_block_number): #after one cycle, adding next block number to DB
