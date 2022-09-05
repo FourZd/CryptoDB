@@ -1,0 +1,17 @@
+
+body {
+    background-image: url('background.jpg');
+    margin: 0;
+}
+.header {
+    color: white;
+    font-size: 500%;
+    text-align: center;
+    line-height: 50%
+}
+
+.prompt {
+    color: white;
+    text-align: center;
+    line-height: 0%
+}

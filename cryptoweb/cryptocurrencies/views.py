@@ -7,7 +7,5 @@ from .models import Blockchain, SmartContract
 def main_page(request):
     return HttpResponse('<h1> You are at the main page </h1>')
 def contracts(request):
-    contracts = SmartContract.objects.all()
-    return render(request, 'cryptocurrencies/contracts.html', {
-        'contracts': contracts, 'title': 'List of contracts'
-        })
+    data = SmartContract.objects.all()
+    return render(request, 'cryptocurrencies/contracts.html', {'data': data})
