@@ -1,4 +1,4 @@
-from eth import eth_main, bsc_main
+from script import eth_main, bsc_main
 import multiprocessing
 class CombinedChains():
 
