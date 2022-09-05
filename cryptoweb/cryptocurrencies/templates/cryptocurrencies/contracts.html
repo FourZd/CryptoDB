@@ -19,20 +19,21 @@
     <main>
         <table>
             <thead>
-                <th class="address">Smart contract</th>
-                <th class="blockchain">Blockchain</th>
-                <th class="creator-address">Creator address</th>
-                <th class="block-num">Block number</th>
-                <th class="creation-date">Created</th>
-            </tr>
+                <th class="column1">Smart contract</th>
+                <th class="column2">Blockchain</th>
+                <th class="column3">Creator address</th>
+                <th class="column4">Block number</th>
+                <th class="column5">Created</th>
             </thead>
             <tbody>
             {% for elements in data %}
-            <th class="address-data">{{elements.address}}</th>
-            <th class="blockchain-data">{{elements.blockchain}}</th>
-            <th class="creator-address-data">{{elements.creator}}</th>
-            <th class="block-num-data">{{elements.block_number}}</th>
-            <th class="creation-date-data">{{elements.creation_datetime}}</th>
+                <tr>
+                    <td class="address column1">{{elements.address}}</td>
+                    <td class="blockchain column2">{{elements.blockchain}}</td>
+                    <td class="creator column3">{{elements.creator}}</td>
+                    <td class="block-number column4">{{elements.block_number}}</td>
+                    <td class="creation-datetime column5">{{elements.creation_datetime}}</td>
+                </tr>
             {% endfor %}
             </tbody>
             </table>
