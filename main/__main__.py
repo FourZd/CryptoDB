@@ -1,13 +1,13 @@
-from bsc import bsc_main
-from eth import eth_main
+from eth import eth_main, bsc_main
 import multiprocessing
 class CombinedChains():
 
     def start_bsc(self):
         bsc_main.start_work()
-
+    
     def start_eth(self):
         eth_main.start_work()
+
     
     def infinity_loop(self):
         bsc_proc = multiprocessing.Process(target=self.start_bsc)
