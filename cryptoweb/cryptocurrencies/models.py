@@ -20,9 +20,9 @@ class Blockchain(models.Model):
         verbose_name_plural = 'Блокчейны'
         
 class SmartContract(models.Model):
-    address = models.CharField(max_length=200, verbose_name='Адрес')
+    address = models.CharField(max_length=42, verbose_name='Адрес')
     blockchain = models.ForeignKey(Blockchain, on_delete=models.PROTECT, related_name='contracts', default=None, verbose_name='Блокчейн')
-    creator = models.CharField(blank=True, max_length=200, verbose_name='Создатель')
+    creator = models.CharField(blank=True, max_length=42, verbose_name='Создатель')
     block_number = models.IntegerField(default=None, verbose_name='Номер блока')
     creation_datetime = models.DateTimeField(blank=True, default=None, verbose_name='Дата и время создания')
 
