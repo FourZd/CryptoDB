@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+<head>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'cryptocurrencies/style.css' %}">
+    <meta charset="utf-8">
+
+</head>
+
+<body class="text-center">
+
+    <div class="cover-container d-flex h-100 p-3 mx-auto flex-column">
+        <header class="masthead mb-auto text-center">
+        </header>
+
+        {% block main %}
+            <main role="main" class="inner cover">
+                <h1 class="cover-heading">CryptoDB</h1>
+                <p class="lead">Welcome to my cryptocurrency project</p>
+                <p class="lead">Here you can see different information about blockchains, f.e. new smart contracts info</p>
+                <p class="lead">
+                <a href="#" class="btn btn-lg btn-secondary">Learn more</a>
+                </p>
+            </main>
+        {% endblock %}
+    </div>

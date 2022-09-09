@@ -1,14 +1,19 @@
 <!DOCTYPE html>
+{% extends 'base.html' %}
 <html>
 <head>
-    {% load static %}
+    {% block head %}
+    {% load static %}    
     <link rel="stylesheet" href="{% static 'cryptocurrencies/style.css' %}">
     <meta charset="utf-8">
-
+    {% endblock %}
 </head>
 <body>
+    {% block menu %}
+    {% endblock %}
     <div class="cover"></div>
-    <header>
+    <main>
+        {% block main %}
         <div>
             <h1 class="header">Cryptocurrencies</h1>
             <h2 class="prompt">
@@ -16,9 +21,8 @@
                 <p>So it doesn't have enough data for usage</p>
                 <p>If you are interested in this project, you can contact me in TG @Forzzy</p>
             </h2>
-    </header>
-    <main>
-        <table>
+        </div>
+        <table class="center">
             <thead>
                 <th class="column1">Smart contract</th>
                 <th class="column2">Blockchain</th>
@@ -38,6 +42,7 @@
             {% endfor %}
             </tbody>
             </table>
+        {% endblock %}
     </main>
 </body>
 
