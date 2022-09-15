@@ -2,15 +2,14 @@
 body {
     background: linear-gradient(grey, black);
     background-repeat: no-repeat;
-    background-size: cover;
+    background-size: auto;
     background-attachment: fixed;
-    background-position: top;
-    margin: 0;
+    height: 100vh;
+    margin: 0; 
+    padding: 0;   
+    overflow: auto;
 }
-.cover {
-    background: rgba(0, 0, 0, 0.8);
-    position: absolute;
-}
+    
 .header {
     color: white;
     font-size: 500%;
@@ -28,9 +27,9 @@ body {
 }
 
 table {
-    margin: 0;  
     background: rgb(99,99,99);
     background: linear-gradient(0deg, rgba(0, 0, 0, 0.802) 0%, rgba(27, 27, 27, 0.874) 100%);
+    margin-bottom: 100px;
 }
 table, th, td {
     border: 2px solid black;
@@ -80,4 +79,25 @@ th {
 }
 .column5 {
     width: 200px;
+}
+
+  
+.pagination {
+    z-index: 50;
+    display: flex;
+    background-color: black;
+    bottom: 0;
+}
+.pagination a {
+    float: left;
+    padding: 8px 16px;
+    text-decoration: none;
+    color: white;
+    
+}
+.page-highlighted {
+    border: 22px;
+    border-color: red;
+    background-color: red;
+    color: white;
 }

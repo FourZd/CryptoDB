@@ -2,6 +2,7 @@ from unittest.util import _MAX_LENGTH
 from django.db import models
 from django.db.models import Count
 from django.contrib import admin
+from django.urls import reverse
 
 class Blockchain(models.Model):
     name = models.CharField(max_length=20, verbose_name='Наименование')
@@ -26,6 +27,8 @@ class SmartContract(models.Model):
     block_number = models.IntegerField(default=None, verbose_name='Номер блока')
     creation_datetime = models.DateTimeField(blank=True, default=None, verbose_name='Дата и время создания')
 
+    def get_absolute_url(self):
+        return reverse('cryptocurrencies:cryptotable')
     def __str__(self):
         return self.address
 

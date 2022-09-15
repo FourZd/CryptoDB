@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% extends 'base.html' %}
+{% load cryptocurrencies_tags %}
 <html>
 <head>
     {% block head %}
@@ -22,6 +23,7 @@
                 <p>If you are interested in this project, you can contact me in TG @Forzzy</p>
             </h2>
         </div>
+        <div>
         <table class="center">
             <thead>
                 <th class="column1">Smart contract</th>
@@ -31,7 +33,7 @@
                 <th class="column5">Created</th>
             </thead>
             <tbody>
-            {% for elements in data %}
+            {% for elements in contracts %}
                 <tr>
                     <td class="address column1">{{elements.address}}</td>
                     <td class="blockchain column2">{{elements.blockchain}}</td>
@@ -42,6 +44,20 @@
             {% endfor %}
             </tbody>
             </table>
+        </div>
+        <div>
+            <ul class="pagination">
+                {% for p in page_obj.paginator.page_range %}
+                    {% if page_obj.number == p %}
+                        <li><a class="page-highlighted", href="?page={{ p }}">{{ p }}</a></li>
+                    {% else %}
+                        <li><a href="?page={{ p }}">{{ p }}</a></li>
+                    {% endif %}
+                
+
+                {% endfor %}
+            </ul>
+        </div>
         {% endblock %}
     </main>
 </body>
